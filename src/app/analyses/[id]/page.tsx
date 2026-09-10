@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/base-path";
 import { formatAnalysisDate } from "@/lib/format";
 import { wrapHtmlDocument } from "@/lib/sanitize";
 import type { Analysis } from "@/lib/types";
@@ -16,7 +17,7 @@ export default function AnalysisDetailPage() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const response = await fetch(`/api/v1/analyses/${params.id}`, { cache: "no-store" });
+      const response = await fetch(api(`/api/v1/analyses/${params.id}`), { cache: "no-store" });
       if (response.status === 404) {
         setStatus("empty");
         return;
@@ -41,7 +42,7 @@ export default function AnalysisDetailPage() {
   const remove = async () => {
     if (!analysis) return;
     if (!window.confirm(`确定删除「${analysis.title}」？删除后不可恢复。`)) return;
-    const response = await fetch(`/api/v1/analyses/${analysis.id}`, { method: "DELETE" });
+    const response = await fetch(api(`/api/v1/analyses/${analysis.id}`), { method: "DELETE" });
     if (response.ok) router.push("/");
   };
 

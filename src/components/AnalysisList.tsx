@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "@/lib/base-path";
 import { dateBadge, formatAnalysisDate, formatDateTime } from "@/lib/format";
 import type { AnalysisMeta } from "@/lib/types";
 
@@ -27,7 +28,7 @@ export function AnalysisList() {
     if (append) setLoadingMore(true);
     else setStatus("loading");
     try {
-      const response = await fetch(`/api/v1/analyses?page=${nextPage}&pageSize=20`, {
+      const response = await fetch(api(`/api/v1/analyses?page=${nextPage}&pageSize=20`), {
         cache: "no-store",
       });
       if (!response.ok) throw new Error("failed");

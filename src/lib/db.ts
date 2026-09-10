@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
-import type { Analysis, AnalysisMeta, LedgerItem, StoreData, Summary } from "./types";
+import type { Analysis, AnalysisMeta, LedgerItem, Snapshot, StoreData, Summary } from "./types";
 import { roundMoney, shanghaiNowIso } from "./format";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -10,6 +10,7 @@ const emptyStore = (): StoreData => ({
   assets: [],
   liabilities: [],
   analyses: [],
+  snapshots: [],
   previousNetWorth: null,
   lastRecordedNetWorth: null,
   idempotency: {},
@@ -38,6 +39,7 @@ function readStore(): StoreData {
       assets: parsed.assets ?? [],
       liabilities: parsed.liabilities ?? [],
       analyses: parsed.analyses ?? [],
+      snapshots: parsed.snapshots ?? [],
       idempotency: parsed.idempotency ?? {},
     };
   } catch {
@@ -54,30 +56,55 @@ function sumAmount(items: LedgerItem[]): number {
   return roundMoney(items.reduce((total, item) => total + item.amount, 0));
 }
 
+function latestSnapshot(store: StoreData): Snapshot | null {
+  if (!store.snapshots?.length) return null;
+  const sorted = [...store.snapshots].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.createdAt < b.createdAt ? 1 : -1;
+  });
+  return sorted[0] ?? null;
+}
+
 function latestUpdatedAt(store: StoreData): string | null {
-  const times = [...store.assets, ...store.liabilities].map((item) => item.updatedAt);
+  const ledgerTimes = [...store.assets, ...store.liabilities].map((item) => item.updatedAt);
+  const snapTimes = (store.snapshots ?? []).map((item) => item.updatedAt);
+  const times = [...ledgerTimes, ...snapTimes];
   if (times.length === 0) return null;
   return times.sort().at(-1) ?? null;
 }
 
 export function computeSummary(store: StoreData = readStore()): Summary {
+  const snap = latestSnapshot(store);
+  if (snap) {
+    return {
+      totalAssets: snap.totalAssets,
+      totalLiabilities: snap.totalLiabilities,
+      netWorth: snap.netWorth,
+      updatedAt: snap.updatedAt,
+      previousNetWorth: store.previousNetWorth,
+      source: "snapshot",
+      snapshotDate: snap.date,
+    };
+  }
   const totalAssets = sumAmount(store.assets);
   const totalLiabilities = sumAmount(store.liabilities);
+  const hasLedger = store.assets.length > 0 || store.liabilities.length > 0;
   return {
     totalAssets,
     totalLiabilities,
     netWorth: roundMoney(totalAssets - totalLiabilities),
     updatedAt: latestUpdatedAt(store),
     previousNetWorth: store.previousNetWorth,
+    source: hasLedger ? "ledger" : "empty",
+    snapshotDate: null,
   };
 }
 
-function recordNetWorth(store: StoreData) {
-  const current = computeSummary(store).netWorth;
-  if (store.lastRecordedNetWorth !== null && store.lastRecordedNetWorth !== current) {
+function recordNetWorth(store: StoreData, currentNetWorth: number) {
+  if (store.lastRecordedNetWorth !== null && store.lastRecordedNetWorth !== currentNetWorth) {
     store.previousNetWorth = store.lastRecordedNetWorth;
   }
-  store.lastRecordedNetWorth = current;
+  store.lastRecordedNetWorth = currentNetWorth;
 }
 
 export async function getStore(): Promise<StoreData> {
@@ -109,7 +136,8 @@ export async function upsertLedger(
     } else {
       list.push(item);
     }
-    recordNetWorth(store);
+    const nextNetWorth = computeSummary(store).netWorth;
+    recordNetWorth(store, nextNetWorth);
     writeStore(store);
     return item;
   });
@@ -121,7 +149,8 @@ export async function deleteLedger(kind: "assets" | "liabilities", id: string): 
     const before = store[kind].length;
     store[kind] = store[kind].filter((row) => row.id !== id);
     if (store[kind].length === before) return false;
-    recordNetWorth(store);
+    const nextNetWorth = computeSummary(store).netWorth;
+    recordNetWorth(store, nextNetWorth);
     writeStore(store);
     return true;
   });
@@ -223,5 +252,75 @@ export async function saveIdempotent(key: string, body: unknown): Promise<void> 
     store.idempotency = Object.fromEntries(trimmed);
     store.idempotency[key] = { createdAt: shanghaiNowIso(), body };
     writeStore(store);
+  });
+}
+
+export async function listSnapshots(): Promise<Snapshot[]> {
+  return withLock(() => {
+    const store = readStore();
+    return [...store.snapshots].sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return a.createdAt < b.createdAt ? 1 : -1;
+    });
+  });
+}
+
+export async function getSnapshot(id: string): Promise<Snapshot | null> {
+  return withLock(() => readStore().snapshots.find((item) => item.id === id) ?? null);
+}
+
+export async function upsertSnapshot(input: {
+  date: string;
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth?: number;
+  note?: string;
+}): Promise<Snapshot> {
+  return withLock(() => {
+    const store = readStore();
+    const now = shanghaiNowIso();
+    const netWorth = roundMoney(
+      typeof input.netWorth === "number" && Number.isFinite(input.netWorth)
+        ? input.netWorth
+        : input.totalAssets - input.totalLiabilities,
+    );
+    const existing = store.snapshots.find((row) => row.date === input.date);
+    if (existing) {
+      existing.totalAssets = input.totalAssets;
+      existing.totalLiabilities = input.totalLiabilities;
+      existing.netWorth = netWorth;
+      existing.note = input.note;
+      existing.updatedAt = now;
+      recordNetWorth(store, netWorth);
+      writeStore(store);
+      return existing;
+    }
+    const snapshot: Snapshot = {
+      id: `snp_${input.date.replace(/-/g, "")}_${Math.random().toString(36).slice(2, 8)}`,
+      date: input.date,
+      totalAssets: input.totalAssets,
+      totalLiabilities: input.totalLiabilities,
+      netWorth,
+      note: input.note,
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.snapshots.push(snapshot);
+    recordNetWorth(store, netWorth);
+    writeStore(store);
+    return snapshot;
+  });
+}
+
+export async function deleteSnapshot(id: string): Promise<boolean> {
+  return withLock(() => {
+    const store = readStore();
+    const before = store.snapshots.length;
+    store.snapshots = store.snapshots.filter((row) => row.id !== id);
+    if (store.snapshots.length === before) return false;
+    const nextNetWorth = computeSummary(store).netWorth;
+    recordNetWorth(store, nextNetWorth);
+    writeStore(store);
+    return true;
   });
 }

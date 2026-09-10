@@ -126,3 +126,64 @@ export function parseAnalysisBody(body: unknown): {
     source,
   };
 }
+
+const MAX_MONEY = 9_999_999_999_999.99;
+
+function parseMoneyField(value: unknown, label: string): { value?: number; error?: string } {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    return { error: `${label}必须是大于等于 0 的数字` };
+  }
+  if (num > MAX_MONEY) {
+    return { error: `${label}超出允许范围` };
+  }
+  return { value: roundMoney(num) };
+}
+
+export function parseSnapshotBody(body: unknown): {
+  date?: string;
+  totalAssets?: number;
+  totalLiabilities?: number;
+  netWorth?: number;
+  note?: string;
+  error?: string;
+  status?: number;
+} {
+  if (!body || typeof body !== "object") {
+    return { error: "请求体必须是 JSON 对象", status: 400 };
+  }
+  const data = body as Record<string, unknown>;
+
+  const assets = parseMoneyField(data.totalAssets, "总资产");
+  if (assets.error) return { error: assets.error, status: 400 };
+  const liabilities = parseMoneyField(data.totalLiabilities, "总负债");
+  if (liabilities.error) return { error: liabilities.error, status: 400 };
+
+  let netWorth: number | undefined;
+  if (data.netWorth !== undefined && data.netWorth !== null) {
+    const parsed = parseMoneyField(data.netWorth, "净资产");
+    if (parsed.error) return { error: parsed.error, status: 400 };
+    netWorth = parsed.value;
+  }
+
+  const date =
+    typeof data.date === "string" && data.date.trim()
+      ? data.date.trim()
+      : shanghaiToday();
+  if (!isValidDate(date)) {
+    return { error: "date 格式必须是 YYYY-MM-DD", status: 400 };
+  }
+
+  const note = typeof data.note === "string" ? data.note.trim() : "";
+  if (note.length > 200) {
+    return { error: "备注最多 200 字", status: 400 };
+  }
+
+  return {
+    date,
+    totalAssets: assets.value,
+    totalLiabilities: liabilities.value,
+    netWorth,
+    note: note || undefined,
+  };
+}

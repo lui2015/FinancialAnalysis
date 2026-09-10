@@ -52,12 +52,26 @@ export interface Summary {
   netWorth: number;
   updatedAt: string | null;
   previousNetWorth: number | null;
+  source: "snapshot" | "ledger" | "empty";
+  snapshotDate: string | null;
+}
+
+export interface Snapshot {
+  id: string;
+  date: string;
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface StoreData {
   assets: LedgerItem[];
   liabilities: LedgerItem[];
   analyses: Analysis[];
+  snapshots: Snapshot[];
   previousNetWorth: number | null;
   lastRecordedNetWorth: number | null;
   idempotency: Record<string, { createdAt: string; body: unknown }>;

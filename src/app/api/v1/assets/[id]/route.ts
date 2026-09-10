@@ -1,3 +1,4 @@
+import { isAuthorized } from "@/lib/auth";
 import { deleteLedger, listAssets, upsertLedger } from "@/lib/db";
 import { error, json, parseLedgerBody } from "@/lib/http";
 
@@ -5,6 +6,9 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!isAuthorized(request.headers.get("authorization"))) {
+    return error(401, "鉴权失败");
+  }
   const { id } = await context.params;
   const existing = (await listAssets()).find((item) => item.id === id);
   if (!existing) return error(404, "资产不存在");
@@ -21,9 +25,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!isAuthorized(request.headers.get("authorization"))) {
+    return error(401, "鉴权失败");
+  }
   const { id } = await context.params;
   const ok = await deleteLedger("assets", id);
   if (!ok) return error(404, "资产不存在");

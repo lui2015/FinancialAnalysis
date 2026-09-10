@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { api } from "@/lib/base-path";
 import { formatMoney, formatUpdatedAt } from "@/lib/format";
 import type { Summary } from "@/lib/types";
 
@@ -14,7 +15,7 @@ export function SummaryCards() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const response = await fetch("/api/v1/summary", { cache: "no-store" });
+      const response = await fetch(api("/api/v1/summary"), { cache: "no-store" });
       if (!response.ok) throw new Error("failed");
       setSummary((await response.json()) as Summary);
       setStatus("ready");

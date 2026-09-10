@@ -21,6 +21,10 @@ npm run dev
 
 ## 开放接口
 
+所有写接口（`POST` / `PUT` / `DELETE`）都需要在请求头带上 `Authorization: Bearer <API_KEY>`，读接口（`GET`）无需鉴权。
+
+### 上传 HTML 分析报告
+
 `POST /api/v1/analyses`
 
 ```bash
@@ -36,11 +40,46 @@ curl -X POST http://localhost:3000/api/v1/analyses \
   }'
 ```
 
-配套接口：
+### 上传总资产 / 总负债 / 净资产（快照）
 
-- `GET /api/v1/summary`
-- `GET /api/v1/analyses`
-- `GET /api/v1/analyses/:id`
-- `DELETE /api/v1/analyses/:id`
+`POST /api/v1/snapshots`，按 `date` 去重，重复上传会覆盖当天记录。
+
+```bash
+curl -X POST http://localhost:3000/api/v1/snapshots \
+  -H "Authorization: Bearer $(cat data/.api-key)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date": "2026-09-10",
+    "totalAssets": 1234567.89,
+    "totalLiabilities": 234567.89,
+    "netWorth": 1000000.00,
+    "note": "9 月定投后"
+  }'
+```
+
+`netWorth` 留空时服务端自动按 `totalAssets - totalLiabilities` 计算。最新一条快照会覆盖首页「总资产 / 总负债 / 净资产」。
+
+### 接口清单
+
+| 方法 | 路径 | 鉴权 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/api/v1/summary` | 否 | 总资产、总负债、净资产 |
+| GET | `/api/v1/assets` | 否 | 资产明细列表 |
+| POST | `/api/v1/assets` | 是 | 新增资产明细 |
+| PUT | `/api/v1/assets/:id` | 是 | 更新资产明细 |
+| DELETE | `/api/v1/assets/:id` | 是 | 删除资产明细 |
+| GET | `/api/v1/liabilities` | 否 | 负债明细列表 |
+| POST | `/api/v1/liabilities` | 是 | 新增负债明细 |
+| PUT | `/api/v1/liabilities/:id` | 是 | 更新负债明细 |
+| DELETE | `/api/v1/liabilities/:id` | 是 | 删除负债明细 |
+| GET | `/api/v1/snapshots` | 否 | 快照列表 |
+| POST | `/api/v1/snapshots` | 是 | 上传 / 覆盖快照 |
+| DELETE | `/api/v1/snapshots/:id` | 是 | 删除快照 |
+| GET | `/api/v1/analyses` | 否 | 分析列表（分页） |
+| GET | `/api/v1/analyses/:id` | 否 | 单条分析 |
+| POST | `/api/v1/analyses` | 是 | 上传 HTML 分析报告 |
+| DELETE | `/api/v1/analyses/:id` | 是 | 删除分析 |
+
+在「资产管理」页底部可查看 API Key、接口清单和一键复制的 AI 提示词模板，也可调用 `POST /api/v1/auth/rotate` 重新生成密钥。
 
 数据保存在本地 `data/store.json`，单用户使用。
