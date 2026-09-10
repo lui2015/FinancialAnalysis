@@ -4,7 +4,9 @@ import { error, json } from "@/lib/http";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}${BASE_PATH}`;
+  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
+  const baseUrl = `${proto}://${host}${BASE_PATH}`;
   return json({
     baseUrl,
     apiKey: getApiKey(),
