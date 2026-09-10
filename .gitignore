@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+data/*.json
+data/.api-key
+.env
+.env.local
+.DS_Store
+*.log
+tsconfig.tsbuildinfo
