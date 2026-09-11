@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/base-path";
-import { formatAnalysisDate } from "@/lib/format";
 import { wrapHtmlDocument } from "@/lib/sanitize";
 import type { Analysis } from "@/lib/types";
 
@@ -47,65 +46,66 @@ export default function AnalysisDetailPage() {
   };
 
   return (
-    <main className="flex min-h-[calc(100dvh-2rem)] flex-col">
-      <header className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <Link href="/" className="inline-flex min-h-11 items-center text-[13px] tracking-widest text-cyan">
-            ← HOME
-          </Link>
-          {analysis ? (
-            <>
-              <p className="hud-label mt-1">{formatAnalysisDate(analysis.analysisDate)}</p>
-              <h1 className="font-display mt-1 truncate text-[20px] font-semibold leading-7 tracking-wide">
-                {analysis.title}
-              </h1>
-            </>
-          ) : (
-            <h1 className="font-display text-[20px] font-semibold tracking-wide">财务分析</h1>
-          )}
-        </div>
-        {analysis ? (
-          <button
-            type="button"
-            onClick={() => void remove()}
-            className="inline-flex min-h-11 shrink-0 items-center text-sm tracking-wider text-hot"
-          >
-            删除
-          </button>
-        ) : null}
-      </header>
-
-      {status === "loading" ? <div className="cyber-panel min-h-[60vh] animate-pulse" /> : null}
-
-      {status === "error" ? (
-        <div className="cyber-panel px-5 py-6">
-          <p>报告加载失败</p>
-          <button type="button" onClick={() => void load()} className="neon-cyan mt-3 min-h-11 text-sm">
-            重试
-          </button>
-        </div>
-      ) : null}
-
-      {status === "empty" ? (
-        <div className="cyber-panel px-5 py-8">
-          <p className="text-[15px] font-medium">报告无法打开</p>
-          <Link href="/" className="mt-3 inline-flex min-h-11 items-center tracking-wider text-cyan">
-            返回列表
-          </Link>
-        </div>
-      ) : null}
-
+    <>
       {status === "ready" && analysis ? (
-        <div className="cyber-panel mx-auto w-full max-w-report flex-1 overflow-hidden">
+        <>
           <iframe
             title={analysis.title}
             srcDoc={wrapHtmlDocument(analysis.html)}
             sandbox="allow-popups allow-popups-to-escape-sandbox"
             referrerPolicy="no-referrer"
-            className="min-h-[70dvh] w-full border-0 bg-white"
+            className="fixed inset-0 z-0 h-full w-full border-0 bg-white"
           />
+          <div className="pointer-events-none fixed inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-3 sm:p-4">
+            <Link
+              href="/"
+              className="pointer-events-auto inline-flex min-h-9 items-center rounded bg-black/55 px-3 py-1.5 text-[12px] tracking-widest text-cyan-200 backdrop-blur transition hover:bg-black/75"
+            >
+              ← HOME
+            </Link>
+            <button
+              type="button"
+              onClick={() => void remove()}
+              className="pointer-events-auto inline-flex min-h-9 items-center rounded bg-black/55 px-3 py-1.5 text-[12px] tracking-wider text-rose-300 backdrop-blur transition hover:bg-black/75"
+            >
+              删除
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {status === "loading" ? (
+        <div className="fixed inset-0 z-10 grid place-items-center text-white">
+          <div className="cyber-panel px-6 py-4 text-[15px]">报告加载中…</div>
         </div>
       ) : null}
-    </main>
+
+      {status === "error" ? (
+        <div className="fixed inset-0 z-10 grid place-items-center px-4 text-white">
+          <div className="cyber-panel px-5 py-6 text-center">
+            <p className="text-[15px]">报告加载失败</p>
+            <button type="button" onClick={() => void load()} className="neon-cyan mt-3 min-h-11 text-sm">
+              重试
+            </button>
+            <div className="mt-1">
+              <Link href="/" className="inline-flex min-h-11 items-center tracking-wider text-cyan">
+                返回列表
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {status === "empty" ? (
+        <div className="fixed inset-0 z-10 grid place-items-center px-4 text-white">
+          <div className="cyber-panel px-5 py-8 text-center">
+            <p className="text-[15px] font-medium">报告无法打开</p>
+            <Link href="/" className="mt-3 inline-flex min-h-11 items-center tracking-wider text-cyan">
+              返回列表
+            </Link>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
