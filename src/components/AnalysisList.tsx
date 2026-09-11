@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/base-path";
 import { dateBadge, formatAnalysisDate, formatDateTime } from "@/lib/format";
@@ -121,10 +120,12 @@ export function AnalysisList() {
             const label = `${item.title}，分析日期 ${formatAnalysisDate(item.analysisDate)}`;
             return (
               <li key={item.id}>
-                <Link
-                  href={`/analyses/${item.id}`}
+                <a
+                  href={api(`/analyses/${item.id}`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
-                  className="cyber-panel block min-h-12 px-4 py-4 transition-[box-shadow,border-color] hover:border-cyan hover:shadow-cyan md:grid md:grid-cols-[176px_1fr] md:gap-6 md:px-5"
+                  className="cyber-panel block min-h-12 cursor-pointer px-4 py-4 transition-[box-shadow,border-color] hover:border-cyan hover:shadow-cyan md:grid md:grid-cols-[176px_1fr] md:gap-6 md:px-5"
                 >
                   <div className="flex items-center gap-2">
                     <time dateTime={item.analysisDate} className="font-display text-[13px] tracking-wide text-cyan">
@@ -147,7 +148,7 @@ export function AnalysisList() {
                       WRITE {formatDateTime(item.createdAt)}
                     </p>
                   </div>
-                </Link>
+                </a>
               </li>
             );
           })}
