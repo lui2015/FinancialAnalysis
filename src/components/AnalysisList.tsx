@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/base-path";
 import { dateBadge, formatAnalysisDate, formatDateTime } from "@/lib/format";
 import type { AnalysisMeta } from "@/lib/types";
@@ -66,8 +67,6 @@ export function AnalysisList() {
     setPulling(0);
   };
 
-  const countLabel = useMemo(() => `${String(total).padStart(2, "0")} FILES`, [total]);
-
   return (
     <section className="mt-10" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <div className="mb-4 flex items-end justify-between px-1">
@@ -75,7 +74,12 @@ export function AnalysisList() {
           <p className="hud-label">Archives</p>
           <h2 className="font-display mt-1 text-lg tracking-wide">财务分析</h2>
         </div>
-        {status === "ready" ? <p className="font-display text-[12px] tracking-widest text-cyan">{countLabel}</p> : null}
+        <Link
+          href="/analyses/manage"
+          className="cyber-btn-ghost inline-flex min-h-9 shrink-0 items-center px-3 text-[12px] tracking-widest text-cyan"
+        >
+          管理
+        </Link>
       </div>
 
       {pulling > 0 ? (

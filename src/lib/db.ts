@@ -238,6 +238,21 @@ export async function deleteAnalysis(id: string): Promise<boolean> {
   });
 }
 
+export async function updateAnalysis(
+  id: string,
+  patch: Pick<Analysis, "title" | "analysisDate" | "summary" | "html" | "source">,
+): Promise<Analysis | null> {
+  return withLock(() => {
+    const store = readStore();
+    const index = store.analyses.findIndex((item) => item.id === id);
+    if (index < 0) return null;
+    const updated: Analysis = { ...store.analyses[index], ...patch, updatedAt: shanghaiNowIso() };
+    store.analyses.splice(index, 1, updated);
+    writeStore(store);
+    return updated;
+  });
+}
+
 export async function getIdempotent(key: string): Promise<unknown | null> {
   return withLock(() => readStore().idempotency[key]?.body ?? null);
 }
