@@ -404,7 +404,7 @@ export default function AssetsPage() {
       {open ? (
         <div className="fixed inset-0 z-20 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <form
-            className="cyber-panel absolute inset-x-0 bottom-0 max-h-[90dvh] overflow-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:rounded-none"
+            className="cyber-panel cyber-drawer px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
             onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();
@@ -479,7 +479,7 @@ export default function AssetsPage() {
           }}
         >
           <form
-            className="cyber-panel absolute inset-x-0 bottom-0 max-h-[90dvh] overflow-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:rounded-none"
+            className="cyber-panel cyber-drawer px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
             onClick={(event) => event.stopPropagation()}
             onSubmit={(event) => {
               event.preventDefault();

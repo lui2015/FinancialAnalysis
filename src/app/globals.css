@@ -236,3 +236,25 @@ option {
 .flicker {
   animation: flicker 4.5s infinite;
 }
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* 右侧抽屉：需定义在 .cyber-panel 之后，以覆盖其 position: relative */
+.cyber-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  overflow-y: auto;
+  border-left: 1px solid rgba(0, 240, 255, 0.28);
+  animation: drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
