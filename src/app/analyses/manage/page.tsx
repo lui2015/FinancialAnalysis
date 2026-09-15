@@ -43,6 +43,7 @@ export default function ManageAnalysesPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [message, setMessage] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -98,6 +99,12 @@ export default function ManageAnalysesPage() {
     if (!file) return;
     if (file.size > MAX_HTML_BYTES) {
       setFormError("HTML 文件超过 2MB");
+      return;
+    }
+    const looksHtml =
+      /\.(html?|txt)$/i.test(file.name) || file.type === "" || file.type.startsWith("text/");
+    if (!looksHtml) {
+      setFormError("请上传 HTML 文件");
       return;
     }
     try {
@@ -323,31 +330,45 @@ export default function ManageAnalysesPage() {
               />
             </label>
 
-            <label className="mt-4 block text-[13px] text-muted">
+            <p className="mt-4 text-[13px] text-muted">
               HTML 文件（{form.id ? "留空则保留原内容" : "必填"}，≤ 2MB）
+            </p>
+            <label
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                void pickFile(event.dataTransfer.files?.[0]);
+              }}
+              className={`mt-2 flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 border border-dashed px-4 py-6 text-center transition-colors ${
+                dragging ? "border-cyan bg-cyan/10" : "border-cyan/35 bg-black/40"
+              }`}
+            >
               <input
                 type="file"
                 accept=".html,.htm,text/html"
+                className="hidden"
                 onChange={(event) => void pickFile(event.target.files?.[0])}
-                className="cyber-input mt-1 min-h-11 w-full px-3 py-2 text-[13px]"
               />
+              <span className="font-display text-[14px] tracking-[0.2em] text-cyan">拖动上传</span>
+              <span className="text-[12px] leading-5 text-muted">将 .html 文件拖到这里，或点击选择文件</span>
+              {form.fileName ? (
+                <span className="mt-1 text-[12px] text-cyan">已载入：{form.fileName}</span>
+              ) : null}
             </label>
-            {form.fileName ? (
-              <p className="mt-1 text-[12px] text-cyan">已选择：{form.fileName}</p>
-            ) : null}
-
-            <label className="mt-4 block text-[13px] text-muted">
-              或直接编辑 / 粘贴 HTML 源码
-              <textarea
-                value={form.html}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, html: event.target.value, fileName: "" }))
-                }
-                placeholder="<!DOCTYPE html> …"
-                className="cyber-input font-tech mt-1 min-h-40 w-full px-3 py-2 text-[12px]"
-              />
-            </label>
-            <p className="mt-1 text-[12px] text-muted">{form.html.length.toLocaleString()} 字符</p>
+            <p className="mt-1 text-[12px] text-muted">
+              {form.html.length ? `${form.html.length.toLocaleString()} 字符` : "尚未载入内容"}
+            </p>
 
             {formError ? <p className="mt-3 text-[13px] text-hot">{formError}</p> : null}
 
