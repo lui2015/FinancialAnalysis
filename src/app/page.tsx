@@ -5,7 +5,7 @@ import { SummaryCards } from "@/components/SummaryCards";
 export default function HomePage() {
   return (
     <main>
-      <AppHeader actionHref="/assets" actionLabel="管理" />
+      <AppHeader />
       <SummaryCards />
       <AnalysisList />
     </main>
